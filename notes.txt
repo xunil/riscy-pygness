@@ -1,0 +1,10 @@
+RCC: Similar but some changes
+STK: Seems fine!
+SCB: Accurate!
+USART2: Base is same; register map is the same too!
+AFIO_BASE: Seems unused.
+TIM2: Should work unchanged.
+
+STM32F4 Discovery board has 4 user-accessible LEDs, connected to PORTD, pins 12-15; green, orange, red and blue, respectively.
+USART2 can be wired to PORTA or PORTD; in this case it probably makes more sense to wire to PORTA.
+USART2 pins are Alternate Function 7 of PORTA.  Set GPIOA_AFRL to 0x00077777.
