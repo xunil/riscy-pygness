@@ -22,18 +22,18 @@
 # Following reverts GDB to older behavior allowing access to all
 # of target memory.  This should not be necessary once I figure out
 # how to tell GDB what memory regions the target has.
-#set mem inaccessible-by-default off
+set mem inaccessible-by-default off
 
 # All the LPC ARM chips are little endian
 # The STM32 chip is little endian
-#set endian little
+set endian little
 
 
 
-cd ~/riscy/cortex/stm32
+cd ~/Development/riscy
 #file ~/riscy/cortex/stm32/led-stm32.elf
-#file ~/riscy/cortex/led-stm32.elf
-file ~/riscy/cortex/stm32/riscy.elf
+#file ~/Development/riscy/led-stm32.elf
+file ~/Development/riscy/riscy.elf
 
 dir .
 set prompt (stm32-gdb) 
@@ -42,7 +42,8 @@ set prompt (stm32-gdb)
 #target sim
 
 # connect to openOCD running on gdb port 3333
-target remote localhost:3333
+#target extended-remote localhost:4242
+target remote localhost:4242
 
 # Set a breakpoint
 b _start

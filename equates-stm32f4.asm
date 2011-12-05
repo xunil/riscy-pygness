@@ -131,18 +131,19 @@ setup_ports:
         
 ;;;; Set up LED pin - green LED on PD12
         ;; Enable the Port D peripheral clock (for LED)
+        ;; and the Port A peripheral clock (for USART)
         ldr r6, = RCC_AHB1ENR
-        mov r0, BIT3
+        mov r0, BIT3 + BIT0
         str r0, [r6]
 
         ;; Configure mode of LED pin: Port D, pin 12
-        ldr r6, = GPIOA_MODER
-        ldr r0, = 0x4000000        ; Output
+        ldr r6, = GPIOD_MODER
+        ldr r0, = BIT24            ; Output
         str r0, [r6]
 
         ;; Configure pullup for LED pin: Port D, pin 12
-        ldr r6, = GPIOA_PUPDR
-        ldr r0, = 0x4000000        ; Pull-up
+        ldr r6, = GPIOD_PUPDR
+        ldr r0, = BIT24            ; Pull-up
         str r0, [r6]
 
         ;; STM32F4 port - still relevant?  vvvvv
@@ -153,19 +154,27 @@ setup_ports:
 
 ;;;; UART2 Initialization
 setup_uarts:    
-        ;; Configure mode of USART2 pins Port A
+        ;; Configure mode of USART2 pins Port A (AF mode)
+        ;; nbl3|nbl2|nbl1|nbl0
+        ;; 0000|0000|1010|0000
+        ;;        0   A    0
         ldr r6, = GPIOA_MODER
-        ldr r0, = 0x114            ; PA0 and PA3 input, rest output
+        ;;ldr r0, = 0x2AA
+        ldr r0, = 0xA0
         str r0, [r6]
 
         ;; Configure pullups for USART2 pins on Port A
+        ;; nbl3|nbl2|nbl1|nbl0
+        ;; 0000|0000|0001|0000
+        ;;  0    0    1    0
         ldr r6, = GPIOA_PUPDR
-        ldr r0, = 0x114            ; All pins of USART2 pulled up
+        ;;ldr r0, = 0x114            ; All pins of USART2 pulled up
+        ldr r0, = 0x20               ; TX pin pulled up
         str r0, [r6]
 
-        ;; Set alternate function 7 to enable USART2 pins on Port D
+        ;; Set alternate function 7 to enable USART2 pins on Port A
         ldr r6, = GPIOA_AFRL
-        ldr r0, = 0x77777           ; Alternate function 7 for pins 3-7 of Port D
+        ldr r0, = 0x7700           ; Alternate function 7 for TX and RX pins of USART2 on PORTA 
         str r0, [r6]
 
         ;; On the Olimex STM32-P103 board, UART2 is connected to the
@@ -200,6 +209,13 @@ setup_uarts:
         ;; be 8 MHz.  If the desired baudrate is 38400 bps, then
         ;; BRRVALUE = 8000000 / 38400 = 0xD0.
         
+enableuart:
+        ;; set UE (usart enable) (bit 13), TE (transmit enable) (bit 3), and RE (receiver enable) (bit 2) 
+        ldr r6, = USART2_CR1
+        ;;.equ  USART_UE_TE_RE, (BIT13 + BIT3 + BIT2)
+        ldr r0, = BIT13            ; UE bit - USART enable
+        str r0, [r6]
+
 setbaud:
         .equ BRRVALUE, (PCLK1 / BAUDRATE)
         ldr r6, = USART2_BRR
@@ -207,11 +223,12 @@ setbaud:
         ldr r0, = BRRVALUE         ; BAUDRATE bps
         str r0, [r6]
 
-enableuart:
-        ;; set UE (usart enable) (bit 13), TE (transmit enable) (bit 3), and RE (receiver enable) (bit 2) 
+enabletxrx:
+        ;; set TE (transmit enable) (bit 3), and RE (receiver enable) (bit 2) 
+        ;; this should cause an idle frame to be sent
         ldr r6, = USART2_CR1
-        .equ  USART_UE_TE_RE, (BIT13 + BIT3 + BIT2)
-        ldr r0, = USART_UE_TE_RE
+        ldr r0, [r6]
+        orr r0, # 0x0000000C       ; = BIT3 + BIT2
         str r0, [r6]
 
         mov pc, lr

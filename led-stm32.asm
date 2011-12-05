@@ -12,9 +12,21 @@
         .syntax unified
 
 ;;; Equates
-        .equ GPIOC_CRH,   0x40011004
-        .equ GPIOC_ODR,   0x4001100C
-        .equ RCC_APB2ENR, 0x40021018
+        .equ GPIOD_BASE      ,   0x40020C00
+        .equ GPIOD_MODER     ,   GPIOD_BASE + 0x00
+        .equ GPIOD_OTYPER    ,   GPIOD_BASE + 0x04
+        .equ GPIOD_OSPEEDR   ,   GPIOD_BASE + 0x08
+        .equ GPIOD_PUPDR     ,   GPIOD_BASE + 0x0C
+        .equ GPIOD_IDR       ,   GPIOD_BASE + 0x10
+        .equ GPIOD_ODR       ,   GPIOD_BASE + 0x14
+        .equ GPIOD_BSRR      ,   GPIOD_BASE + 0x18
+        .equ GPIOD_LCKR      ,   GPIOD_BASE + 0x1C
+        .equ GPIOD_AFRL      ,   GPIOD_BASE + 0x20
+        .equ GPIOD_AFRH      ,   GPIOD_BASE + 0x24
+
+        .equ RCC_BASE        ,   0x40023800
+        .equ RCC_AHB1ENR     ,   RCC_BASE + 0x30
+
         .equ STACKINIT,   0x20005000
 
         .equ LEDDELAY,    800000
@@ -35,23 +47,23 @@ vectors:
 _start:
 
         ;; Enable the Port C peripheral clock by setting bit 4
-        ldr r6, = RCC_APB2ENR
-        mov r0, 0x10
+        ldr r6, = RCC_AHB1ENR
+        mov r0, 0x08
         str r0, [r6]
 
         ;; Set the config and mode bits for Port C bit 12 so it will
         ;; be a push-pull output (up to 50 MHz) by setting bits 19-16
         ;; to '0011'.
 
-        ldr r6, = GPIOC_CRH
-        ldr r0, = 0x44434444
+        ldr r6, = GPIOD_MODER
+        ldr r0, = 0x1000000
         str r0, [r6]
 
         ;; Load R2 and R3 with the "on" and "off" constants
         mov r2, 0              ; value to turn on LED
         mov r3, 0x1000         ; value to turn off LED
 
-        ldr r6, = GPIOC_ODR    ;  point to Port C output data register
+        ldr r6, = GPIOD_ODR    ;  point to Port C output data register
 
 loop:
         str r2, [r6]           ; clear Port C, pin 12, turning on LED
