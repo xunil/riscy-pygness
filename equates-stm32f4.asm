@@ -196,6 +196,7 @@ setup_uarts:
         ;;                        ; configure as push-pull alternate function low frequency
         ;;str r0, [r6]
 
+        ;; XXX: Should this be ldr r0, = BIT17 instead?
         ;; enable clock for USART2
         ldr r6, = RCC_APB1ENR
         mov r0, BIT17
