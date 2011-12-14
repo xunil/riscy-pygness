@@ -13,66 +13,6 @@
 
         .include "equates-bits.s"
 ;;; Equates
-        .equ PLLCLKIN, 8000000
-        ;;    Main crystal clock frequency
-        ;;    above (8 MHz) is the speed of both the STM32 HSI (internal
-        ;;    RC) oscillator and the HSE (external crystal) oscillator on
-        ;;    the Olimex board.
-        
-        .equ PLL_MULTIPLIER, 1   ;  Multiplier must be 1 since we turn off PLL
-
-        .equ CPUDIVISOR, 1       ;  (does the Cortex have a cpu clock divisor?)
-        
-        ;.equ PCLKDIVISOR, 4      ; must be 1, 2, or 4
-        .equ PCLKDIVISOR, 1      ; must be 1, 2, or 4
-
-        .equ TIMER0_PRESCALE_DIVISOR, 1
-
-        .equ BAUDRATE, 38400
-        .equ SPIDIVISOR, 128     ; slow it way down for testing
-
-
-;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Equates that do calculations and so are not likely to change
-;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        ;; Frequency is given in number of clocks per second
-
-        ;; The Cortex M3 has two PCLKs
-        
-        .equ PLLCLK, (PLLCLKIN * PLL_MULTIPLIER)
-        .equ CCLK, (PLLCLK / CPUDIVISOR)
-
-        ;; The Cortex M3 terms would be HSI or HSE (for the external
-        ;; or internal high-speed oscillators).  After going through
-        ;; (or bypassing) the PLL, we get a SYSCLK which I think is
-        ;; the same thing as what we called the CCLK on the LPC chips.
-        .equ SYSCLK, CCLK
-
-        ;; After the SYSCLK goes through the AHB prescaler
-        ;; (/ 1,2,...512) it is called the HCLK.  So, maybe HCLK is
-        ;; the Cortex M3 term for what we had been calling CCLK?
-        ;; Maybe not.
-
-        ;; The Cortex M3 has PCLK1 and PCLK2.
-        ;; 
-        ;;    APB1 peripherals use PCLK1 (up to 36 MHz)
-        ;;    APB2 peripherals use PCLK2 (up to 72 MHz)
-
-        .equ  PCLK, CCLK / PCLKDIVISOR   ; most timing depends on PCLK
-
-        ;; Cortex M3 has two peripheral clocks, PCLK1 and PCLK2.  Set
-        ;; them to the same value (hopefully their defaults are divide by 1)
-        .equ PCLK1, PCLK
-        .equ PCLK2, PCLK
-
-        ;; So, to begin with, all the clocks stay at 8 MHz.
-        
-        ;; Following needs to be converted for the Cortex M3
-        .equ PCLK_TIMER0_DIVISOR, PCLKDIVISOR
-        
-        .equ TIMER0FREQ, ((CCLK / PCLK_TIMER0_DIVISOR) / TIMER0_PRESCALE_DIVISOR)
-        
-        .equ  SPICLK, PCLK / SPIDIVISOR
 
         .equ GPIOA_BASE      ,   0x40020000
         .equ GPIOA_MODER     ,   GPIOA_BASE + 0x00
@@ -150,7 +90,11 @@ awaitHSE:
         str r0, [r6]            ; switch to the external clock
         
         
-        ;; Should we now turn off the HSION bit?
+        ;; Turn off the HSION bit
+        ldr r6, = RCC_CR
+        ldr r0, [r6]
+        and r0, 0xFFFFFFFE      ; Zero the 0th bit
+        str r0, [r6]
         
         ;; Enable the GPIOA peripheral clock by setting bit 0
         ldr r6, = RCC_AHB1ENR
@@ -165,8 +109,7 @@ awaitHSE:
         
         ;; Set PORTA pins in alternate function mode
         ldr r6, = GPIOA_MODER
-        ;;ldr r0, = 0x2AA
-        mov r0, 0xA0
+        ldr r0, = 0x2AA
         str r0, [r6]
 
         ;;ldr r6, = GPIOA_PUPDR
@@ -176,7 +119,7 @@ awaitHSE:
 
         ;; Set alternate function 7 to enable USART2 pins on Port A
         ldr r6, = GPIOA_AFRL
-        ldr r0, = 0x7700           ; Alternate function 7 for TX and RX pins of USART2 on PORTA 
+        ldr r0, = 0x77777              ; Alternate function 7 for TX and RX pins of USART2 on PORTA 
         str r0, [r6]
 
 enableuart:
@@ -187,10 +130,8 @@ enableuart:
         str r0, [r6]
 
 setbaud:
-        .equ BRRVALUE, (PCLK1 / BAUDRATE)
         ldr r6, = USART2_BRR
-        ;ldr r0, = 0x00D0          ; 38400 bps
-        ldr r0, = BRRVALUE         ; BAUDRATE bps
+        ldr r0, = 0x00D0          ; 38400 bps
         str r0, [r6]
 
 enabletxrx:
@@ -206,19 +147,19 @@ enabletxrx:
         ldr r7, = USART2_DR
 
 initchargen:
-        mov r0, 0x24           ; Start with ASCII space^H^H^Hdollar sign
+        movs r0, #'$           ; Start with ASCII space^H^H^Hdollar sign
 
 loop:
-        str r0, [r7]           ; Output the character
+        strb r0, [r7]          ; Output the character
         
 awaittx:
         ldr r0, [r6]           ; Load USART status register
         and r0, # TXE          ; Transmission complete?
         beq awaittx            ; loop until character is done transmitting
 
-        add r0, # 1            ; increment character
-        cmp r0, 0x7F           ; did we hit the end of low ASCII?
-        beq initchargen        ; yes, reset the character to space
+        add r0, r0, 1          ; increment character
+        cmp r0, #'z            ; did we hit the end of low ASCII?
+        bge initchargen        ; yes, reset the character to space
                                ; otherwise...
         b loop                 ; continue forever
 

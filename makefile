@@ -12,12 +12,12 @@
 # ######################################################################
 
 PORT = /dev/ttyS1
-BIN = /usr/local/arm/bin
+BIN = /home/xunil/arm/bin
 PREASM = /usr/local/bin/preasm.tcl
 CCLK = 8000
 DLBAUD = 38400
 
-ASMFLAGS = -mcpu=cortex-m3 -mthumb -mapcs-32 -gstabs
+ASMFLAGS = -mcpu=cortex-m4 -mthumb -mapcs-32 -gstabs
 LNKFLAGS =  -v -T stm32.ld -nostartfiles
 
 #INCLUDEFILES = equates-bits.asm equates-stm32.asm olimex-stm32-p103.asm 
@@ -66,25 +66,25 @@ kernel-stm32.bin : kernel.bin
 	$(PREASM) $*.asm $@ 
 
 %.o: %.s 
-	$(BIN)/arm-elf-as $(ASMFLAGS) -ahls=$*.lst  -o $@ $*.s
+	$(BIN)/arm-none-eabi-as $(ASMFLAGS) -ahls=$*.lst  -o $@ $*.s
 
 %.dis: %.elf
-	$(BIN)/arm-elf-objdump  -d --source $<  > $@
+	$(BIN)/arm-none-eabi-objdump  -d --source $<  > $@
 
 %.hex: %.bin
-	$(BIN)/arm-elf-objcopy --input-target binary  --output-target ihex  $<  $*.hex
+	$(BIN)/arm-none-eabi-objcopy --input-target binary  --output-target ihex  $<  $*.hex
 
 %.srec: %.bin
-	$(BIN)/arm-elf-objcopy --input-target binary  --output-target srec  $<  $*.srec
+	$(BIN)/arm-none-eabi-objcopy --input-target binary  --output-target srec  $<  $*.srec
 
 %.bin: %.elf
-	$(BIN)/arm-elf-objcopy -O binary $<  $*.bin
+	$(BIN)/arm-none-eabi-objcopy -O binary $<  $*.bin
 
 %.elf: %.o
 	@ echo "...linking $@"
-	$(BIN)/arm-elf-ld $(LNKFLAGS) -o $@ $<
-	$(BIN)/arm-elf-objdump -h $@ > $*.lnkh
-	$(BIN)/arm-elf-objdump -t $@ > $*.lnkt
+	$(BIN)/arm-none-eabi-ld $(LNKFLAGS) -o $@ $<
+	$(BIN)/arm-none-eabi-objdump -h $@ > $*.lnkh
+	$(BIN)/arm-none-eabi-objdump -t $@ > $*.lnkt
 
 %.dl: %.bin
 	@ echo " about to down load with CCLK = $(CCLK)"
