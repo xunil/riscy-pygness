@@ -1,11 +1,11 @@
-;;; led-stm32.asm
-;;; written by Frank Sergeant
-;;;    frank@pygmy.utoh.org
+;;; chargen-stm32.asm
+;;; written by Robert Liesenfeld <xunil@xunil.net>
+;;; adapted from led-stm32.asm, written by Frank Sergeant <frank@pygmy.utoh.org>
 ;;;    http://pygmy.utoh.org/riscy
 ;;; This program is in the public domain.  See http://pygmy.utoh.org/riscy/cortex/
 ;;; for notes about the program and how to assemble, link, and burn to flash.
 
-;;; Blink the LED on the Olimex STM32-P103 ARM Cortex M3 board.
+;;; Continuously loop through low ASCII, outputting characters via USART2.
 
 ;;; Directives
         .thumb                  ; (same as saying '.code 16')
@@ -101,21 +101,13 @@ awaitHSE:
         ldr r0, = BIT0
         str r0, [r6]
 
-        ;; Enable the USART2 peripheral clock by setting bit 17
-        ldr r6, = RCC_APB1ENR
-        ldr r0, = BIT17
-        str r0, [r6]
-
         
         ;; Set PORTA pins in alternate function mode
         ldr r6, = GPIOA_MODER
-        ldr r0, = 0x2AA
+        ldr r0, [r6]
+        ldr r5, = 0x2AA
+        orr r0, r5
         str r0, [r6]
-
-        ;;ldr r6, = GPIOA_PUPDR
-        ;;;;ldr r0, = 0x114            ; All pins of USART2 pulled up
-        ;;ldr r0, = 0x20               ; TX pin pulled up
-        ;;str r0, [r6]
 
         ;; Set alternate function 7 to enable USART2 pins on Port A
         ldr r6, = GPIOA_AFRL
@@ -123,6 +115,11 @@ awaitHSE:
         str r0, [r6]
 
 enableuart:
+        ;; Enable the USART2 peripheral clock by setting bit 17
+        ldr r6, = RCC_APB1ENR
+        ldr r0, = BIT17
+        str r0, [r6]
+
         ;; set UE (usart enable) (bit 13), TE (transmit enable) (bit 3), and RE (receiver enable) (bit 2) 
         ldr r6, = USART2_CR1
         ;;.equ  USART_UE_TE_RE, (BIT13 + BIT3 + BIT2)
@@ -131,8 +128,8 @@ enableuart:
 
 setbaud:
         ldr r6, = USART2_BRR
-        ldr r0, = 0x00D0          ; 38400 bps
-        str r0, [r6]
+        mov r0, 0xD0          ; 38400 bps
+        strb r0, [r6]
 
 enabletxrx:
         ;; set TE (transmit enable) (bit 3), and RE (receiver enable) (bit 2) 
@@ -146,19 +143,20 @@ enabletxrx:
         ldr r6, = USART2_SR
         ldr r7, = USART2_DR
 
+
 initchargen:
-        movs r0, #'$           ; Start with ASCII space^H^H^Hdollar sign
+        movs r0, 0x20          ; Start with ASCII space character
 
 loop:
         strb r0, [r7]          ; Output the character
         
 awaittx:
-        ldr r0, [r6]           ; Load USART status register
-        and r0, # TXE          ; Transmission complete?
+        ldr r1, [r6]           ; Load USART status register
+        and r1, # TXE          ; Transmission complete?
         beq awaittx            ; loop until character is done transmitting
 
-        add r0, r0, 1          ; increment character
-        cmp r0, #'z            ; did we hit the end of low ASCII?
+        add r0, 1              ; increment character
+        cmp r0, 0x7F           ; did we hit the end of low ASCII?
         bge initchargen        ; yes, reset the character to space
                                ; otherwise...
         b loop                 ; continue forever
