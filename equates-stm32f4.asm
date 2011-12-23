@@ -158,9 +158,14 @@ setup_uarts:
         ;; nbl3|nbl2|nbl1|nbl0
         ;; 0000|0000|1010|0000
         ;;        0   A    0
+        ;; GPIOA_MODER has a nonzero reset value and JTAG stops
+        ;; working if you set it to zero, so a little bit of ORRing
+        ;; is required.
         ldr r6, = GPIOA_MODER
         ;;ldr r0, = 0x2AA
+        ldr r5, [r6] 
         ldr r0, = 0xA0
+        orr r0, r5
         str r0, [r6]
 
         ;; Configure pullups for USART2 pins on Port A
@@ -169,7 +174,7 @@ setup_uarts:
         ;;  0    0    1    0
         ldr r6, = GPIOA_PUPDR
         ;;ldr r0, = 0x114            ; All pins of USART2 pulled up
-        ldr r0, = 0x20               ; TX pin pulled up
+        ldr r0, = 0x20               ; TX pin pulled up (necessary?)
         str r0, [r6]
 
         ;; Set alternate function 7 to enable USART2 pins on Port A
@@ -196,10 +201,9 @@ setup_uarts:
         ;;                        ; configure as push-pull alternate function low frequency
         ;;str r0, [r6]
 
-        ;; XXX: Should this be ldr r0, = BIT17 instead?
         ;; enable clock for USART2
         ldr r6, = RCC_APB1ENR
-        mov r0, BIT17
+        ldr r0, = BIT17
         str r0, [r6]
 
         ;; It appears that the actual formula for the USART2 baudrate
