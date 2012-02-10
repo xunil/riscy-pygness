@@ -118,7 +118,11 @@ awaitHSE:
         str r0, [r6]            ; switch to the external clock
         
         
-        ;; Should we now turn off the HSION bit?
+        ;; Turn off the HSION bit
+        ldr r6, = RCC_CR
+        ldr r0, [r6]
+        and r0, 0xFFFFFFFE      ; Zero the 0th bit
+        str r0, [r6]
         
         mov pc, lr              ; rts
         
@@ -179,7 +183,7 @@ setup_uarts:
 
         ;; Set alternate function 7 to enable USART2 pins on Port A
         ldr r6, = GPIOA_AFRL
-        ldr r0, = 0x7700           ; Alternate function 7 for TX and RX pins of USART2 on PORTA 
+        ldr r0, = 0x77777          ; Alternate function 7 for pins of USART2 on PORTA 
         str r0, [r6]
 
         ;; On the Olimex STM32-P103 board, UART2 is connected to the

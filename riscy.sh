@@ -8,4 +8,4 @@
 
 # Be sure to set the path to Tcl correctly.
 
-/usr/local/bin/tclkit riscy.tcl -image kernel-stm32  -port /dev/ttyS0
+/usr/local/bin/tclkit riscy.tcl -image kernel-stm32  -port /dev/ttyUSB0

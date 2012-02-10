@@ -42,11 +42,14 @@
         .equ USART2_GTPR     ,   USART2_BASE + 0x18
 
         .equ RXNE            ,   BIT5
+        .equ TC              ,   BIT6
         .equ TXE             ,   BIT7
         .equ HSERDY          ,   BIT17
         .equ HSEON           ,   BIT16
 
         .equ STACKINIT,   0x20005000
+
+	.equ DELAY,       1
 
 .section .text
         .org 0
@@ -128,8 +131,9 @@ enableuart:
 
 setbaud:
         ldr r6, = USART2_BRR
-        mov r0, 0xD0          ; 38400 bps
-        strb r0, [r6]
+      ;;ldr r0, = 0x00000341  ;  9600 bps
+        ldr r0, = 0x000000D0  ; 38400 bps
+        str r0, [r6]
 
 enabletxrx:
         ;; set TE (transmit enable) (bit 3), and RE (receiver enable) (bit 2) 
@@ -146,18 +150,22 @@ enabletxrx:
 
 initchargen:
         movs r0, 0x20          ; Start with ASCII space character
-
 loop:
         strb r0, [r7]          ; Output the character
         
-awaittx:
+awaitTXE:
         ldr r1, [r6]           ; Load USART status register
-        and r1, # TXE          ; Transmission complete?
-        beq awaittx            ; loop until character is done transmitting
+        ands r1, # TXE         ; Transmit buffer empty?
+        beq awaitTXE           ; loop until buffer is empty
 
-        add r0, 1              ; increment character
-        cmp r0, 0x7F           ; did we hit the end of low ASCII?
-        bge initchargen        ; yes, reset the character to space
+	ldr r5, = DELAY        ; Busy loop to waste some time, since
+delayloop:                     ; we aren't doing flow control
+	subs r5, 1
+	bne delayloop
+	
+        adds r0, 1             ; increment character
+        cmp  r0, 0x7F          ; did we hit the end of low ASCII?
+        bge  initchargen       ; yes, reset the character to space
                                ; otherwise...
         b loop                 ; continue forever
 
